@@ -1,0 +1,356 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+1.Probability Density 1: Gamma Distribution
+```{r}
+#set parameters
+n <- 4 #size
+lambda <- 7 #shape
+
+#generate random variables from gamma distribution
+X <- rgamma(10000, shape=n, rate=lambda)
+```
+
+Probability Density 2: Sum of Exponentials
+```{r}
+#set parameters
+n <- 4 # number of exponential distributions
+lambda <-7 #shape
+
+#generate random variables from the sum of exponentials
+mysum <- rowSums(matrix(rexp(10000*n, rate=lambda), nrow=10000))
+```
+
+Probability Density 3: Exponential Distribution
+```{r}
+#set parameter
+lambda <- 7 #shape
+
+#generate random variables from exponential distribution 
+Z <- rexp(10000, rate=lambda)
+```
+
+1a.
+Probability Density 1: Gamma Distribution (X)
+```{r}
+#calc mean & variances of X
+mean_X <- mean(X)
+var_X <- var(X)
+
+#print
+print(paste("Empirical Mean (X):", mean_X))
+print(paste("Empirical Variance (X):", var_X))
+```
+
+For Probability Density 2: Sum of Exponentials (mysum)
+```{r}
+#calculate mean and variance of mysum
+mean_mysum <- mean(mysum)
+var_mysum <- var(mysum)
+
+#print
+print(paste("Empirical Mean (mysum):", mean_mysum))
+print(paste("Empirical Variance (mysum):", var_mysum))
+```
+
+For Probability Density 3: Exponential Distribution (Z)
+```{r}
+#calculate mean and variance of Z
+mean_Z <- mean(Z)
+var_Z <- var(Z)
+
+#print
+print(paste("Empirical Mean (Z):", mean_Z))
+print(paste("Empirical Variance (Z):", var_Z))
+```
+
+1b.
+Y
+```{r}
+sum_exp_mean_derived <- n / (lambda)
+sum_exp_var_derived <- n / (lambda^2)
+```
+
+Z
+```{r}
+exp_mean_derived <- 1 / (lambda)
+exp_var_derived <- 1 / (lambda^2)
+```
+
+
+1c-e
+empirical probabilities
+```{r}
+#c
+c_prob = 1-pexp(lambda,mean_Z)
+
+#d
+d_prob = 1-pexp(2*lambda,mean_Z)
+
+#e
+e_prob = 1-pexp(3*lambda, mean_Z)
+
+```
+
+memoryless property: P(Z>a+b | Z>a) = P(Z>b)
+a:
+```{r}
+lambda <- 2
+sample_size <- 10000 #number of observations to generate
+
+#generate the Z_values vector with observations from the exponential distribution
+Z_values <- rexp(sample_size, rate = lambda)
+
+lambda <- 2
+
+count_Z_greater_than_lambda <- sum(Z_values > lambda)
+count_Z_greater_than_lambda_over_2 <- sum(Z_values > lambda/2)
+
+probability_a_empirical <- count_Z_greater_than_lambda / count_Z_greater_than_lambda_over_2
+
+#memoryless eval 
+probability_a_calculus <- exp(-lambda) / exp(-lambda/2)
+
+#check if P(Z > λ | Z > λ/2) is approximately equal to P(Z > λ)
+is_memoryless_a <- abs(probability_a_empirical - probability_a_calculus) < 0.0001
+is_memoryless_a
+```
+
+b:
+```{r}
+count_Z_greater_than_2lambda <- sum(Z_values > 2 * lambda)
+
+probability_b_empirical <- count_Z_greater_than_2lambda / count_Z_greater_than_lambda
+
+#memoryless eval
+probability_b_calculus <- exp(-2 * lambda) / exp(-lambda)
+
+#check if P(Z > 2λ | Z > λ) is approximately equal to P(Z > λ)
+is_memoryless_b <- abs(probability_b_empirical - probability_b_calculus) < 0.0001
+is_memoryless_b
+```
+
+c:
+```{r}
+count_Z_greater_than_3lambda <- sum(Z_values > 3 * lambda)
+
+probability_c_empirical <- count_Z_greater_than_3lambda / count_Z_greater_than_lambda
+
+#memoryless eval
+probability_c_calculus <- exp(-3 * lambda) / exp(-lambda)
+
+# Check if P(Z > 3λ | Z > λ) is approximately equal to P(Z > λ)
+is_memoryless_c <- abs(probability_c_empirical - probability_c_calculus) < 0.0001
+is_memoryless_c
+```
+
+
+investigation table 
+```{r}
+quant_Y <- quantile(Y, probs = c(0.25, 0.5, 0.75, 1))
+quant_Z <- quantile(Z, probs = c(0.25, 0.5, 0.75, 1))
+outer_prod <- outer(quant_Z, quant_Y, FUN = "*")
+
+rows<- rowSums(outer_prod)
+cols <- colSums(outer_prod)
+
+base_grid <- rbind(outer_prod, rows)
+base_grid <- cbind(base_grid, c(cols, sum(cols)))
+
+
+# Create Pretty Columns & Row Names
+colnames(base_grid) <- c("1st Quartile Y", "2nd Quartile Y", "3rd Quartile Y", "4th Quartile Y", "Total")
+rownames(base_grid) <- c("1st Quartile Z", "2nd Quartile Z", "3rd Quartile Z", "4th Quartile Z", "Total")
+
+#Print the raw data
+as.data.frame(base_grid)
+```
+
+```{r}
+#create a scalar
+prodSum <- sum(outer_prod)
+
+#scale
+grid <- outer_prod / prodSum
+
+row_sums <- rowSums(grid)
+col_sums <- colSums(grid)
+
+grid_with_sums <- rbind(grid, row_sums)
+grid_with_sums <- cbind(grid_with_sums, c(col_sums, sum(col_sums)))
+
+#create table
+colnames(grid_with_sums) <- c("1st Quartile Y", "2nd Quartile Y", "3rd Quartile Y", "4th Quartile Y", "Total")
+rownames(grid_with_sums) <- c("1st Quartile Z", "2nd Quartile Z", "3rd Quartile Z", "4th Quartile Z", "Total")
+
+#print
+as.data.frame(grid_with_sums)
+```
+after looking at both tables, we can see that the data converge as the approach the higher quartiles (like quartile 4) whereas in, for example, quartile 1, the intersection is limited. this isn't a good determining factor to pick the most appropriate method.
+
+Fisher test
+```{r}
+fisher.test(base_grid)
+```
+Chi Squared
+```{r}
+chisq.test(base_grid)
+```
+
+based on these results, i would say that the appropriate metric to use is the Chi Square method.
+
+
+Problem 2
+```{r}
+library(dplyr)
+library(corrplot)
+library(Matrix)
+library(ggplot2)
+library(MASS)
+library(vcd)
+```
+
+```{r}
+#data
+home <- read.csv("train.csv", header= TRUE)
+summary(home)
+```
+
+```{r}
+non_num <- sapply(home, function(x) !is.numeric(x)) #find non-numeric data columns
+
+#filter table to exclude non-numeric data
+filter_home <- home[,!non_num]
+corr <- cor(filter_home[,-ncol(filter_home)], filter_home$SalePrice)
+
+corr
+```
+The above correlations show the variables that have the most impact on SalePrice, which are OverallQual, GrLivArea, and GarageCars. Let's also add GarageType, SaleCondition, and SaleType.
+
+Scatterplots:
+```{r}
+#min and max for y-axis
+y_min <- 35000
+y_max <- 800000
+
+#SalePrice - OverallQual
+lm_price <- lm(SalePrice ~ OverallQual, data = home)
+plot(SalePrice ~ OverallQual, data = home, ylim = c(y_min, y_max), xlim = c(0,10),
+     main = "OverallQual vs SalePrice", xlab = "Quality Rating", ylab = "Price")
+abline(lm_price, col = "Red")
+
+
+#GrLivArea
+lm_livArea <- lm(SalePrice ~ GrLivArea, data = home)
+plot(SalePrice ~ GrLivArea, data = home, ylim = c(y_min, y_max), main = "Living Area SQFT vs SalePrice",
+     xlab = "SQFT Rating", ylab = "Price")
+abline(lm_livArea, col = "Red")
+
+#GarageCars
+lm_garage <- lm(SalePrice ~ GarageCars, data = home)
+plot(SalePrice ~ GarageCars, data = home, ylim = c(y_min, y_max), main = "Garage Cap vs SalePrice",
+     ylab = "Cap Rating", xlab = "Price")
+abline(lm_garage, col = "Red")
+```
+
+correlation matrix
+```{r}
+sel_vars <- home[, c("OverallQual", "GrLivArea", "GarageCars", "SalePrice")]
+
+corr_matrix <- cor(sel_vars)
+print(corr_matrix)
+
+#create corr plot for an easier visual to read
+corrplot(corr_matrix, method = 'number')
+```
+
+Descriptive and Inferential Stats
+```{r}
+#overall quality 
+cor.test(home$OverallQual, home$SalePrice, conf.level = 0.8)
+
+#living area
+cor.test(home$GrLivArea, home$SalePrice, cof.level = 0.8)
+
+#garage
+cor.test(home$GarageCars, home$SalePrice, conf.level = 0.8)
+```
+
+```{r}
+fwe <- 1-(1-0.2)^3
+fwe
+```
+We have a high chance of fwe (familywise error). Without adjustments, the type 1 error has a high probability of occurring. We can reject the null hypothesis for all of three p-values.
+
+
+Linear Algebra and Correlation
+```{r}
+matrix <- cor(sel_vars) 
+precision <- solve(matrix) #invert the matrix
+
+int <- matrix %*% precision
+int_1 <- int %*% matrix
+
+expand(lu(int_1))
+```
+
+Data Cleansing 
+```{r}
+clean <- na.omit(home$LotFrontage)
+fit <- fitdistr(clean, "exponential")
+fit
+
+#optimal lambda
+lambda <- fit$estimate
+lambda
+
+#create samples
+new <- data.frame(samples = rexp(1000, lambda))
+head(new)
+
+#cal percentiles
+per_1 <- qexp(p = 0.05, rate = lambda)
+per_1
+per_2 <- qexp(p = 0.95, rate = lambda)
+per_2
+
+#get emperical 95th and 5th percentile 
+quan_1 <- quantile(new$samples, probs = 0.05)
+quan_1
+quan_2 <- quantile(new$samples, probs = 0.95)
+quan_2
+```
+
+Modeling 
+```{r}
+final <- lm(SalePrice ~ OverallQual + GrLivArea + GarageCars + GarageType + SaleCondition + SaleType, data = home)
+summary(final)
+
+#residuals
+par(mfrow = c(2,2))
+plot(final, which = 1:4)
+```
+
+Overall 
+Throughout this analysis, we looked at 4 parts to determin if a regression is reasonable. Independence - there is a linear relationship, which we can see in the scatter plots mentioned above. The uniform spread of residuals shows us that there is constant variance and there is a normality of residuals accross a reasonable range. Overall, we can see a linear relationship between speed and stopping distance.
+
+```{r}
+test <- read.csv("test.csv", header = TRUE)
+test$SalePrice <- predict(object = final, newdata = test)
+test
+```
+
+```{r}
+output <- "final_output.csv"
+subset <- test[,c("Id", "SalePrice")]
+subset[is.na(subset)]  <- 0
+write.csv(subset, file=output, row.names=FALSE)
+```
+
+
+
+
+
+
